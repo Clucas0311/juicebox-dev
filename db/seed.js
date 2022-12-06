@@ -1,4 +1,14 @@
-const { client, getAllUsers, createUser, updateUser } = require("./index");
+const {
+  client,
+  getAllUsers,
+  createUser,
+  updateUser,
+  createPost,
+  updatePost,
+  getAllPosts,
+  getPostsByUser,
+  getUserById,
+} = require("./index");
 
 // This function should call a query which drops all tables from our database
 const dropTables = async () => {
@@ -6,6 +16,7 @@ const dropTables = async () => {
     console.log("Starting to drop tables...");
 
     await client.query(`
+        DROP TABLE IF EXISTS posts;
         DROP TABLE IF EXISTS users;
     `);
 
@@ -54,6 +65,33 @@ const createInitialUsers = async () => {
   }
 };
 
+const createInitialPosts = async () => {
+  try {
+    const [albert, sandra, glamgal] = await getAllUsers();
+
+    await createPost({
+      authorId: albert.id,
+      title: "First Post",
+      content:
+        "This is my first post. I hope I love writing blogs as much as I love writing them.",
+    });
+
+    await createPost({
+      authorId: sandra.id,
+      title: "How does this work",
+      content: "Seriously, does this even do anything?",
+    });
+    await createPost({
+      authorId: glamgal.id,
+      title: "Living the Glam Life",
+      content: "Do you even? I swear that half of you are posing",
+    });
+    console.log("Finished creating posts!");
+  } catch (error) {
+    throw error;
+  }
+};
+
 // this function should call a query which creates all tables from our database
 const createTables = async () => {
   try {
@@ -67,6 +105,14 @@ const createTables = async () => {
             name VARCHAR(255) NOT NULL,
             location VARCHAR(255) NOT NULL,
             active BOOLEAN DEFAULT TRUE
+        );
+
+        CREATE TABLE posts (
+          id SERIAL PRIMARY KEY,
+          "authorId" INTEGER REFERENCES users(id) NOT NULL,
+          title VARCHAR(255) NOT NULL,
+          content TEXT NOT NULL,
+          active BOOLEAN DEFAULT true
         );
     `);
 
@@ -85,6 +131,7 @@ const rebuildDB = async () => {
     await dropTables();
     await createTables();
     await createInitialUsers();
+    await createInitialPosts();
   } catch (error) {
     throw error;
   }
@@ -103,6 +150,21 @@ const testDB = async () => {
     });
 
     console.log("updatedUsers result:", updateUserResult);
+
+    console.log("Calling getAllPosts");
+    const posts = await getAllPosts();
+    console.log("posts", posts);
+
+    console.log("Calling updatePost on posts[0]");
+    const updatePostResult = await updatePost(posts[0].id, {
+      title: "New Title",
+      content: "Updated Content",
+    });
+    console.log("Update Post Result: ", updatePostResult);
+
+    console.log("Calling getUserById with 1");
+    const albert = await getUserById(1);
+    console.log("Updated User id 1:", albert);
 
     console.log("Finished database tests!");
   } catch (error) {
